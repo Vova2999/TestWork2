@@ -48,6 +48,40 @@ void AssertGetArray(ComplexMap<TKey, TValue>& complexMap, TKey key, TValue* expe
 }
 
 template <typename TKey, typename TValue>
+void AssertGetOrAddValue(ComplexMap<TKey, TValue>& complexMap, TKey key, TValue newValue, TValue expectedValue) {
+	TValue value = complexMap.GetOrAddValue(key, newValue);
+
+	cout << "Key: " << key << " Value: " << value << endl;
+	cout << "Key: " << key << " Value: " << expectedValue << " (test)" << endl << endl;
+
+	if (value != expectedValue)
+		throw "Values not equal!";
+}
+
+template <typename TKey, typename TValue>
+void AssertGetOrAddArray(ComplexMap<TKey, TValue>& complexMap, TKey key, TValue* newArray, int newSize, TValue* expectedArray, int expectedSize) {
+	int size;
+	TValue* array = complexMap.GetOrAddArray(key, &size, newArray, newSize);
+
+	cout << "Key: " << key << " Size: " << size << " Values: " << ArrayToString(array, size) << endl;
+	cout << "Key: " << key << " Size: " << expectedSize << " Values: " << ArrayToString(expectedArray, expectedSize) << " (test)" << endl << endl;
+
+	if (!ArraysEqual(array, size, expectedArray, expectedSize))
+		throw "Arrays not equal!";
+}
+
+template <typename TKey, typename TValue>
+void AssertGetOrAddString(ComplexMap<TKey, TValue>& complexMap, TKey key, const char* newLine, const char* expectedLine) {
+	char* line = complexMap.GetOrAddString(key, newLine);
+
+	cout << "Key: " << key << " Line: " << line << endl;
+	cout << "Key: " << key << " Line: " << expectedLine << " (test)" << endl << endl;
+
+	if (strcmp(line, expectedLine) != 0)
+		throw "Strings not equal!";
+}
+
+template <typename TKey, typename TValue>
 void AssertGetString(ComplexMap<TKey, TValue>& complexMap, TKey key, const char* expectedLine) {
 	char* line = complexMap.GetString(key);
 
@@ -217,6 +251,83 @@ void SimpleTest() {
 		throw "ComplexMap size not 0";
 }
 
+void TryAddMethods() {
+	ComplexMap<int, int> complexMap;
+
+	complexMap.AddValue(16, 222);
+	int array1[] = { 4, 5, 6, 7 };
+	int array2[] = { 8, 9, 10 };
+	complexMap.AddArray(142, array1, sizeof(array1) / sizeof(int));
+	complexMap.AddString(993, "123123");
+
+	AssertTryAddValue(complexMap, 16, 333, false);
+	AssertTryAddValue(complexMap, 22, 444, true);
+	AssertGetValue(complexMap, 16, 222);
+	AssertGetValue(complexMap, 22, 444);
+
+	AssertTryAddArray(complexMap, 142, array1, sizeof(array1) / sizeof(int), false);
+	AssertTryAddArray(complexMap, 166, array2, sizeof(array2) / sizeof(int), true);
+	AssertGetArray(complexMap, 142, array1, sizeof(array1) / sizeof(int));
+	AssertGetArray(complexMap, 166, array2, sizeof(array2) / sizeof(int));
+
+	AssertTryAddString(complexMap, 993, "123123", false);
+	AssertTryAddString(complexMap, 111, "1231232", true);
+	AssertGetString(complexMap, 993, "123123");
+	AssertGetString(complexMap, 111, "1231232");
+
+	AssertTryAddValue(complexMap, 142, 333, false);
+	AssertTryAddArray(complexMap, 16, array1, sizeof(array1) / sizeof(int), false);
+	AssertTryAddString(complexMap, 16, "123123", false);
+}
+
+void TryGetMethods() {
+	ComplexMap<int, int> complexMap;
+
+	complexMap.AddValue(16, 222);
+	int array1[] = { 4, 5, 6, 7 };
+	complexMap.AddArray(142, array1, sizeof(array1) / sizeof(int));
+	complexMap.AddString(993, "123123");
+
+	AssertTryGetValue(complexMap, 16, true, 222);
+	AssertTryGetValue(complexMap, 22, false, 0);
+	AssertTryGetValue(complexMap, 142, false, 0);
+	AssertTryGetValue(complexMap, 993, false, 0);
+
+	AssertTryGetArray(complexMap, 142, true, array1, sizeof(array1) / sizeof(int));
+	AssertTryGetArray(complexMap, 22, false, array1, 0);
+	AssertTryGetArray(complexMap, 166, false, array1, 0);
+	AssertTryGetArray(complexMap, 993, false, array1, 0);
+
+	AssertTryGetString(complexMap, 993, true, "123123");
+	AssertTryGetString(complexMap, 16, false, "");
+	AssertTryGetString(complexMap, 142, false, "");
+	AssertTryGetString(complexMap, 111, false, "");
+}
+
+void GetOrAddMethods() {
+	ComplexMap<int, int> complexMap;
+
+	int size;
+	complexMap.AddValue(16, 222);
+	int array1[] = { 4, 5, 6, 7 };
+	int array2[] = { 8, 9, 10 };
+	complexMap.AddArray(142, array1, sizeof(array1) / sizeof(int));
+	complexMap.AddString(993, "123123");
+
+	AssertGetOrAddValue(complexMap, 16, 100, 222);
+	AssertGetOrAddValue(complexMap, 22, 100, 100);
+
+	AssertGetOrAddArray(complexMap, 142, array2, sizeof(array2) / sizeof(int), array1, sizeof(array1) / sizeof(int));
+	AssertGetOrAddArray(complexMap, 166, array2, sizeof(array2) / sizeof(int), array2, sizeof(array2) / sizeof(int));
+
+	AssertGetOrAddString(complexMap, 993, "qq123123", "123123");
+	AssertGetOrAddString(complexMap, 111, "qq123123", "qq123123");
+
+	AssertConstCharException("Check exception on GetOrAddValue instead of GetArray", [&]() { complexMap.GetOrAddValue(142, 100); });
+	AssertConstCharException("Check exception on GetOrAddArray instead of GetValue", [&]() { complexMap.GetOrAddArray(16, &size, array1, sizeof(array1) / sizeof(int)); });
+	AssertConstCharException("Check exception on GetOrAddString instead of GetValue", [&]() { complexMap.GetOrAddString(16, "qq123123"); });
+}
+
 void SimpleTestWithOtherTypes() {
 	ComplexMap<double, double> complexMap;
 
@@ -273,21 +384,24 @@ void ExceptionOnAddingDuplicateValue() {
 }
 
 void ReplaceOnAddingDuplicateValue() {
-	//ComplexMap<int, int> complexMap;
+	ComplexMap<int, int> complexMap;
 
-	//complexMap.AddValueOrReplace(16, 222);
-	//complexMap.AddValueOrReplace(16, 333);
-	//AssertGetValue(complexMap, 16, 333);
+	complexMap.AddValueOrReplace(16, 222);
+	complexMap.AddValueOrReplace(16, 333);
+	AssertGetValue(complexMap, 16, 333);
 
-	//int array1[] = { 4, 5, 6, 7 };
-	//int array2[] = { 74, 73, 72 };
-	//complexMap.AddArrayOrReplace(142, array1, sizeof(array1) / sizeof(int));
-	//complexMap.AddArrayOrReplace(142, array2, sizeof(array2) / sizeof(int));
-	//AssertGetArray(complexMap, 142, array2, sizeof(array2) / sizeof(int));
+	int array1[] = { 4, 5, 6, 7 };
+	int array2[] = { 74, 73, 72 };
+	complexMap.AddArrayOrReplace(142, array1, sizeof(array1) / sizeof(int));
+	complexMap.AddArrayOrReplace(142, array2, sizeof(array2) / sizeof(int));
+	AssertGetArray(complexMap, 142, array2, sizeof(array2) / sizeof(int));
 
-	//complexMap.AddStringOrReplace(993, "321321");
-	//complexMap.AddStringOrReplace(993, "123123");
-	//AssertGetString(complexMap, 993, "123123");
+	complexMap.AddStringOrReplace(993, "321321");
+	complexMap.AddStringOrReplace(993, "123123");
+	AssertGetString(complexMap, 993, "123123");
+
+	complexMap.AddValueOrReplace(993, 222);
+	AssertGetValue(complexMap, 993, 222);
 }
 
 void ExceptionOnGetInvalidType() {
@@ -306,55 +420,6 @@ void ExceptionOnGetInvalidType() {
 	complexMap.AddString(993, "321321");
 	AssertConstCharException("Check exception on GetValue instead of GetString", [&]() { complexMap.GetValue(993); });
 	AssertConstCharException("Check exception on GetArray instead of GetString", [&]() { complexMap.GetArray(993, &size); });
-}
-
-void TryAddMethods() {
-	ComplexMap<int, int> complexMap;
-
-	complexMap.AddValue(16, 222);
-	int array1[] = { 4, 5, 6, 7 };
-	int array2[] = { 8, 9, 10 };
-	complexMap.AddArray(142, array1, sizeof(array1) / sizeof(int));
-	complexMap.AddString(993, "123123");
-
-	AssertTryAddValue(complexMap, 16, 333, false);
-	AssertTryAddValue(complexMap, 22, 444, true);
-	AssertGetValue(complexMap, 16, 222);
-	AssertGetValue(complexMap, 22, 444);
-
-	AssertTryAddArray(complexMap, 142, array1, sizeof(array1) / sizeof(int), false);
-	AssertTryAddArray(complexMap, 166, array2, sizeof(array2) / sizeof(int), true);
-	AssertGetArray(complexMap, 142, array1, sizeof(array1) / sizeof(int));
-	AssertGetArray(complexMap, 166, array2, sizeof(array2) / sizeof(int));
-
-	AssertTryAddString(complexMap, 993, "123123", false);
-	AssertTryAddString(complexMap, 111, "1231232", true);
-	AssertGetString(complexMap, 993, "123123");
-	AssertGetString(complexMap, 111, "1231232");
-}
-
-void TryGetMethods() {
-	ComplexMap<int, int> complexMap;
-
-	complexMap.AddValue(16, 222);
-	int array1[] = { 4, 5, 6, 7 };
-	complexMap.AddArray(142, array1, sizeof(array1) / sizeof(int));
-	complexMap.AddString(993, "123123");
-
-	AssertTryGetValue(complexMap, 16, true, 222);
-	AssertTryGetValue(complexMap, 22, false, 0);
-	AssertTryGetValue(complexMap, 142, false, 0);
-	AssertTryGetValue(complexMap, 993, false, 0);
-
-	AssertTryGetArray(complexMap, 142, true, array1, sizeof(array1) / sizeof(int));
-	AssertTryGetArray(complexMap, 22, false, array1, 0);
-	AssertTryGetArray(complexMap, 166, false, array1, 0);
-	AssertTryGetArray(complexMap, 993, false, array1, 0);
-
-	AssertTryGetString(complexMap, 993, true, "123123");
-	AssertTryGetString(complexMap, 16, false, "");
-	AssertTryGetString(complexMap, 142, false, "");
-	AssertTryGetString(complexMap, 111, false, "");
 }
 
 void RemoveTempMemory() {
@@ -376,14 +441,15 @@ void RemoveTempMemory() {
 
 void main() {
 	SimpleTest();
+	TryAddMethods();
+	TryGetMethods();
+	GetOrAddMethods();
 	SimpleTestWithOtherTypes();
 	ExceptionOnGetMissingKeys();
 	ExceptionOnAddingDuplicateValue();
-	ReplaceOnAddingDuplicateValue();
 	ExceptionOnGetInvalidType();
-	TryAddMethods();
-	TryGetMethods();
 	RemoveTempMemory();
 
+	cout << "All test success!" << endl;
 	system("pause>>void");
 }
