@@ -2,6 +2,7 @@
 
 #include <map>
 #include <algorithm>
+#include <functional>
 
 using namespace std;
 
@@ -57,22 +58,31 @@ class ComplexMap {
 
 	map<Tkey, ValueType*> valuesMap;
 
-	void AddValueType(Tkey key, ValueType* valueType) {
+	bool TryAddValueType(Tkey key, ValueType* valueType) {
 		pair<map<Tkey, ValueType*>::iterator, bool> inserted = valuesMap.insert(pair<Tkey, ValueType*>(key, valueType));
 		if (inserted.second)
-			return;
+			return true;
 
 		delete valueType;
-		throw "Key already exists";
+		return false;
 	}
 
-	void AddValueTypeOrReplace(Tkey key, ValueType* valueType) {
+	void AddValueType(Tkey key, ValueType* valueType) {
+		if (!TryAddValueType(key, valueType))
+			throw "Key already exists";
+	}
+
+	template<typename TValueType>
+	void AddOrUpdateValueType(Tkey key, ValueType* valueType, function<TValueType*(TValueType*)> update) {
 		pair<map<Tkey, ValueType*>::template iterator, bool> inserted = valuesMap.insert(pair<Tkey, ValueType*>(key, valueType));
 		if (inserted.second)
 			return;
 
-		delete inserted.first->second;
-		inserted.first->second = valueType;
+		TValueType* existedValueType = dynamic_cast<TValueType*>(inserted.first->second);
+		if (existedValueType == nullptr)
+			throw "Invalid value type";
+
+		update(existedValueType);
 	}
 
 	template<typename TValueType>
@@ -120,7 +130,24 @@ public:
 		AddValueType(key, new StringValueType(line));
 	}
 
-	void AddValueOrReplace(Tkey key, TValue value) {
+	bool TryAddValue(Tkey key, TValue value) {
+		return TryAddValueType(key, new SingleValueType(value));
+	}
+	bool TryAddArray(Tkey key, TValue* values, int size) {
+		return TryAddValueType(key, new ArrayValueType(values, size));
+	}
+	bool TryAddString(Tkey key, const char* line) {
+		return TryAddValueType(key, new StringValueType(line));
+	}
+
+	void AddOrUpdateValue(Tkey key, TValue value, function<TValue(TValue&)> update) {
+	}
+	void AddOrUpdateArray(Tkey key, TValue* values, int size, function<TValue(TValue*&, int)> update) {
+	}
+	void AddOrUpdateString(Tkey key, const char* line, function<TValue(char*&)> update) {
+	}
+
+	/*void AddValueOrReplace(Tkey key, TValue value) {
 		AddValueTypeOrReplace(key, new SingleValueType(value));
 	}
 	void AddArrayOrReplace(Tkey key, TValue* values, int size) {
@@ -128,7 +155,7 @@ public:
 	}
 	void AddStringOrReplace(Tkey key, const char* line) {
 		AddValueTypeOrReplace(key, new StringValueType(line));
-	}
+	}*/
 
 	TValue GetValue(Tkey key) {
 		SingleValueType* singleValue = GetValueType<SingleValueType>(key);
@@ -168,6 +195,13 @@ public:
 
 		*line = stringValue->Line;
 		return true;
+	}
+
+	TValue GetOrAddValue(Tkey key) {
+	}
+	TValue* GetOrAddArray(Tkey key, int* size) {
+	}
+	char* GetOrAddString(Tkey key) {
 	}
 
 	void Remove(Tkey key) {
