@@ -5,7 +5,7 @@
 
 using namespace std;
 
-template <typename TValue>
+template <typename Tkey, typename TValue>
 class ComplexMap {
 	class ValueType {
 	public:
@@ -55,10 +55,10 @@ class ComplexMap {
 		}
 	};
 
-	map<int, ValueType*> valuesMap;
+	map<Tkey, ValueType*> valuesMap;
 
-	void AddValueType(int key, ValueType* valueType) {
-		pair<map<int, ValueType*>::iterator, bool> inserted = valuesMap.insert(pair<int, ValueType*>(key, valueType));
+	void AddValueType(Tkey key, ValueType* valueType) {
+		pair<map<Tkey, ValueType*>::iterator, bool> inserted = valuesMap.insert(pair<Tkey, ValueType*>(key, valueType));
 		if (inserted.second)
 			return;
 
@@ -66,8 +66,8 @@ class ComplexMap {
 		throw "Key already exists";
 	}
 
-	void AddValueTypeOrReplace(int key, ValueType* valueType) {
-		pair<map<int, ValueType*>::template iterator, bool> inserted = valuesMap.insert(pair<int, ValueType*>(key, valueType));
+	void AddValueTypeOrReplace(Tkey key, ValueType* valueType) {
+		pair<map<Tkey, ValueType*>::template iterator, bool> inserted = valuesMap.insert(pair<Tkey, ValueType*>(key, valueType));
 		if (inserted.second)
 			return;
 
@@ -76,8 +76,8 @@ class ComplexMap {
 	}
 
 	template<typename TValueType>
-	TValueType* GetValueType(int key) {
-		map<int, ValueType*>::template iterator value = valuesMap.find(key);
+	TValueType* GetValueType(Tkey key) {
+		map<Tkey, ValueType*>::template iterator value = valuesMap.find(key);
 		if (value == valuesMap.end())
 			throw "Key not found";
 
@@ -89,8 +89,8 @@ class ComplexMap {
 	}
 
 	template<typename TValueType>
-	TValueType* GetValueTypeOrNullptr(int key) {
-		map<int, ValueType*>::template iterator value = valuesMap.find(key);
+	TValueType* GetValueTypeOrNullptr(Tkey key) {
+		map<Tkey, ValueType*>::template iterator value = valuesMap.find(key);
 		if (value == valuesMap.end())
 			return nullptr;
 
@@ -110,41 +110,41 @@ public:
 		return valuesMap.size();
 	}
 
-	void AddValue(int key, TValue value) {
+	void AddValue(Tkey key, TValue value) {
 		AddValueType(key, new SingleValueType(value));
 	}
-	void AddArray(int key, TValue* values, int size) {
+	void AddArray(Tkey key, TValue* values, int size) {
 		AddValueType(key, new ArrayValueType(values, size));
 	}
-	void AddString(int key, const char* line) {
+	void AddString(Tkey key, const char* line) {
 		AddValueType(key, new StringValueType(line));
 	}
 
-	void AddValueOrReplace(int key, TValue value) {
+	void AddValueOrReplace(Tkey key, TValue value) {
 		AddValueTypeOrReplace(key, new SingleValueType(value));
 	}
-	void AddArrayOrReplace(int key, TValue* values, int size) {
+	void AddArrayOrReplace(Tkey key, TValue* values, int size) {
 		AddValueTypeOrReplace(key, new ArrayValueType(values, size));
 	}
-	void AddStringOrReplace(int key, const char* line) {
+	void AddStringOrReplace(Tkey key, const char* line) {
 		AddValueTypeOrReplace(key, new StringValueType(line));
 	}
 
-	TValue GetValue(int key) {
+	TValue GetValue(Tkey key) {
 		SingleValueType* singleValue = GetValueType<SingleValueType>(key);
 		return singleValue->Value;
 	}
-	TValue* GetArray(int key, int* size) {
+	TValue* GetArray(Tkey key, int* size) {
 		ArrayValueType* arrayValue = GetValueType<ArrayValueType>(key);
 		*size = arrayValue->Size;
 		return arrayValue->Values;
 	}
-	char* GetString(int key) {
+	char* GetString(Tkey key) {
 		StringValueType* stringValue = GetValueType<StringValueType>(key);
 		return stringValue->Line;
 	}
 
-	bool TryGetValue(int key, TValue* value) {
+	bool TryGetValue(Tkey key, TValue* value) {
 		SingleValueType* singleValue = GetValueTypeOrNullptr<SingleValueType>(key);
 		if (singleValue == nullptr)
 			return false;
@@ -152,7 +152,7 @@ public:
 		*value = singleValue->Value;
 		return true;
 	}
-	bool TryGetArray(int key, TValue** values, int* size) {
+	bool TryGetArray(Tkey key, TValue** values, int* size) {
 		ArrayValueType* arrayValue = GetValueTypeOrNullptr<ArrayValueType>(key);
 		if (arrayValue == nullptr)
 			return false;
@@ -161,7 +161,7 @@ public:
 		*size = arrayValue->Size;
 		return true;
 	}
-	bool TryGetString(int key, char** line) {
+	bool TryGetString(Tkey key, char** line) {
 		StringValueType* stringValue = GetValueTypeOrNullptr<StringValueType>(key);
 		if (stringValue == nullptr)
 			return false;
@@ -170,15 +170,15 @@ public:
 		return true;
 	}
 
-	void Remove(int key) {
-		map<int, ValueType*>::template iterator value = valuesMap.find(key);
+	void Remove(Tkey key) {
+		map<Tkey, ValueType*>::template iterator value = valuesMap.find(key);
 		if (value == valuesMap.end())
 			throw "Key not found";
 
 		valuesMap.erase(value);
 	}
-	bool TryRemove(int key) {
-		map<int, ValueType*>::template iterator value = valuesMap.find(key);
+	bool TryRemove(Tkey key) {
+		map<Tkey, ValueType*>::template iterator value = valuesMap.find(key);
 		if (value == valuesMap.end())
 			return false;
 
@@ -187,12 +187,12 @@ public:
 	}
 	void RemoveAll() {
 		for_each(valuesMap.begin(), valuesMap.end(),
-			[](pair<int, ValueType*> value) {
+			[](pair<Tkey, ValueType*> value) {
 				delete value.second;
 			});
 		valuesMap.clear();
 	}
 };
 
-template <typename TValue>
-ComplexMap<TValue>::ValueType::~ValueType() {}
+template <typename Tkey, typename TValue>
+ComplexMap<Tkey, TValue>::ValueType::~ValueType() {}

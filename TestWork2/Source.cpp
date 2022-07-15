@@ -24,8 +24,8 @@ bool ArraysEqual(TValue* firstArray, int firstSize, TValue* secondArray, int sec
 	return true;
 }
 
-template <typename TValue>
-void AssertGetValue(ComplexMap<TValue>& complexMap, int key, TValue expectedValue) {
+template <typename TKey, typename TValue>
+void AssertGetValue(ComplexMap<TKey, TValue>& complexMap, TKey key, TValue expectedValue) {
 	TValue value = complexMap.GetValue(key);
 
 	cout << "Key: " << key << " Value: " << value << endl;
@@ -35,8 +35,8 @@ void AssertGetValue(ComplexMap<TValue>& complexMap, int key, TValue expectedValu
 		throw "Values not equal!";
 }
 
-template <typename TValue>
-void AssertGetArray(ComplexMap<TValue>& complexMap, int key, TValue* expectedArray, int expectedSize) {
+template <typename TKey, typename TValue>
+void AssertGetArray(ComplexMap<TKey, TValue>& complexMap, TKey key, TValue* expectedArray, int expectedSize) {
 	int size;
 	TValue* array = complexMap.GetArray(key, &size);
 
@@ -47,8 +47,8 @@ void AssertGetArray(ComplexMap<TValue>& complexMap, int key, TValue* expectedArr
 		throw "Arrays not equal!";
 }
 
-template <typename TValue>
-void AssertGetString(ComplexMap<TValue>& complexMap, int key, const char* expectedLine) {
+template <typename TKey, typename TValue>
+void AssertGetString(ComplexMap<TKey, TValue>& complexMap, TKey key, const char* expectedLine) {
 	char* line = complexMap.GetString(key);
 
 	cout << "Key: " << key << " Line: " << line << endl;
@@ -58,8 +58,8 @@ void AssertGetString(ComplexMap<TValue>& complexMap, int key, const char* expect
 		throw "Strings not equal!";
 }
 
-template <typename TValue>
-void AssertTryGetValue(ComplexMap<TValue>& complexMap, int key, bool mustBeFound, TValue expectedValue) {
+template <typename TKey, typename TValue>
+void AssertTryGetValue(ComplexMap<TKey, TValue>& complexMap, TKey key, bool mustBeFound, TValue expectedValue) {
 	TValue value;
 	bool isFound = complexMap.TryGetValue(key, &value);
 
@@ -83,8 +83,8 @@ void AssertTryGetValue(ComplexMap<TValue>& complexMap, int key, bool mustBeFound
 		throw "Values not equal!";
 }
 
-template <typename TValue>
-void AssertTryGetArray(ComplexMap<TValue>& complexMap, int key, bool mustBeFound, TValue* expectedArray, int expectedSize) {
+template <typename TKey, typename TValue>
+void AssertTryGetArray(ComplexMap<TKey, TValue>& complexMap, TKey key, bool mustBeFound, TValue* expectedArray, int expectedSize) {
 	int size;
 	TValue* array;
 	bool isFound = complexMap.TryGetArray(key, &array, &size);
@@ -109,8 +109,8 @@ void AssertTryGetArray(ComplexMap<TValue>& complexMap, int key, bool mustBeFound
 		throw "Arrays not equal!";
 }
 
-template <typename TValue>
-void AssertTryGetString(ComplexMap<TValue>& complexMap, int key, bool mustBeFound, const char* expectedLine) {
+template <typename TKey, typename TValue>
+void AssertTryGetString(ComplexMap<TKey, TValue>& complexMap, TKey key, bool mustBeFound, const char* expectedLine) {
 	char* line;
 	bool isFound = complexMap.TryGetString(key, &line);
 
@@ -148,7 +148,7 @@ void AssertConstCharException(const char* previewMessage, function<void()> actio
 }
 
 void SimpleTest() {
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	if (complexMap.GetSize() != 0)
 		throw "ComplexMap size not 0";
@@ -178,9 +178,40 @@ void SimpleTest() {
 		throw "ComplexMap size not 0";
 }
 
+void SimpleTestWithOtherTypes() {
+	ComplexMap<double, double> complexMap;
+
+	if (complexMap.GetSize() != 0)
+		throw "ComplexMap size not 0";
+
+	complexMap.AddValue(16.6, 222.2);
+	AssertGetValue(complexMap, 16.6, 222.2);
+	complexMap.AddValue(63.1, 333.7);
+	AssertGetValue(complexMap, 63.1, 333.7);
+
+	double array1[] = { 4.1, 5.2, 6.3, 7.4 };
+	double array2[] = { 74.5, 73.6, 72.7 };
+	complexMap.AddArray(142.9, array1, sizeof(array1) / sizeof(double));
+	AssertGetArray(complexMap, 142.9, array1, sizeof(array1) / sizeof(double));
+	complexMap.AddArray(147.8, array2, sizeof(array2) / sizeof(double));
+	AssertGetArray(complexMap, 147.8, array2, sizeof(array2) / sizeof(double));
+
+	complexMap.AddString(993.2, "123123");
+	AssertGetString(complexMap, 993.2, "123123");
+	complexMap.AddString(995.3, "321321");
+	AssertGetString(complexMap, 995.3, "321321");
+
+	if (complexMap.GetSize() != 6)
+		throw "ComplexMap size not 6";
+
+	complexMap.RemoveAll();
+	if (complexMap.GetSize() != 0)
+		throw "ComplexMap size not 0";
+}
+
 void ExceptionOnGetMissingKeys() {
 	int size;
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	AssertConstCharException("Check exception on GetValue by missing key", [&]() { complexMap.GetValue(16); });
 	AssertConstCharException("Check exception on GetArray by missing key", [&]() { complexMap.GetArray(16, &size); });
@@ -188,7 +219,7 @@ void ExceptionOnGetMissingKeys() {
 }
 
 void ExceptionOnAddingDuplicateValue() {
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	complexMap.AddValue(16, 222);
 	AssertConstCharException("Check exception on AddValue", [&]() { complexMap.AddValue(16, 333); });
@@ -203,7 +234,7 @@ void ExceptionOnAddingDuplicateValue() {
 }
 
 void ReplaceOnAddingDuplicateValue() {
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	complexMap.AddValueOrReplace(16, 222);
 	complexMap.AddValueOrReplace(16, 333);
@@ -222,7 +253,7 @@ void ReplaceOnAddingDuplicateValue() {
 
 void ExceptionOnGetInvalidType() {
 	int size;
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	complexMap.AddValue(16, 222);
 	AssertConstCharException("Check exception on GetArray instead of GetValue", [&]() { complexMap.GetArray(16, &size); });
@@ -239,7 +270,7 @@ void ExceptionOnGetInvalidType() {
 }
 
 void TryGetMethods() {
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	int value;
 	complexMap.AddValue(16, 222);
@@ -264,7 +295,7 @@ void TryGetMethods() {
 }
 
 void RemoveTempMemory() {
-	ComplexMap<int> complexMap;
+	ComplexMap<int, int> complexMap;
 
 	int* array1 = new int[4]{ 4, 5, 6, 7 };
 	complexMap.AddArray(142, array1, 4);
@@ -282,6 +313,7 @@ void RemoveTempMemory() {
 
 void main() {
 	SimpleTest();
+	SimpleTestWithOtherTypes();
 	ExceptionOnGetMissingKeys();
 	ExceptionOnAddingDuplicateValue();
 	ReplaceOnAddingDuplicateValue();
